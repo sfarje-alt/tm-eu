@@ -6,7 +6,7 @@ import json
 app = Flask(__name__)
 
 # IMPORTANT: Update this with your GitHub username and repository name
-GITHUB_USER = "YOUR_GITHUB_USERNAME"  # <-- CHANGE THIS
+GITHUB_USER = "sfarje-alt"  # <-- CHANGE THIS
 GITHUB_REPO = "eu-trademark-scraper"
 GITHUB_BRANCH = "main"
 
