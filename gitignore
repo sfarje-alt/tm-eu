@@ -1,0 +1,59 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Downloads folder (temporary files)
+downloads/
+temp/
+tmp/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+
+# Vercel
+.vercel
+
+# Node (if using Vercel CLI)
+node_modules/
+package-lock.json
+
+# Keep data folder but ignore local test files
+data_local/
+test_data/

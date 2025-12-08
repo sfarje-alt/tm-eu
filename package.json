@@ -1,0 +1,11 @@
+{
+  "name": "eu-trademark-api",
+  "version": "1.0.0",
+  "description": "EU Trademark Scraper API",
+  "scripts": {
+    "deploy": "vercel --prod"
+  },
+  "keywords": ["trademark", "eu", "api", "scraper"],
+  "author": "",
+  "license": "MIT"
+}
