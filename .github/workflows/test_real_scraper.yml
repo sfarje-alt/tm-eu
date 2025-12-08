@@ -1,0 +1,58 @@
+name: Test Real EU Scraper
+
+on:
+  workflow_dispatch:  # Manual trigger only for testing
+
+jobs:
+  test-real-scraper:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install Chrome
+      uses: browser-actions/setup-chrome@v1
+      with:
+        chrome-version: stable
+    
+    - name: Install ChromeDriver
+      uses: nanasess/setup-chromedriver@v2
+    
+    - name: Install Python dependencies
+      run: |
+        pip install selenium==4.15.2
+        pip install pandas==2.1.1
+        pip install openpyxl==3.1.2
+        pip install webdriver-manager==4.0.1
+        pip install requests==2.31.0
+    
+    - name: Test Chrome Setup
+      run: |
+        google-chrome --version
+        chromedriver --version
+    
+    - name: Run REAL Scraper Test
+      run: |
+        python test_real_scraper.py
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: scraper-test-results
+        path: data/scraper_test_*.json
+    
+    - name: Commit test results
+      if: always()
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add data/scraper_test_*.json || true
+        git commit -m "Add scraper test results - $(date +'%Y-%m-%d %H:%M')" || echo "No changes"
+        git push || echo "No changes to push"
