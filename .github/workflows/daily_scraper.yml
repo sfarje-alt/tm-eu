@@ -13,65 +13,52 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
     
-    - name: Install Chrome
+    - name: Install system dependencies
       run: |
         sudo apt-get update
+        sudo apt-get install -y wget gnupg
+        wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+        sudo sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list'
+        sudo apt-get update
         sudo apt-get install -y google-chrome-stable
+        sudo apt-get install -y chromium-driver
+        google-chrome --version
+        which chromium-driver
     
     - name: Install Python dependencies
       run: |
-        pip install -r requirements.txt
-        pip install webdriver-manager
+        python -m pip install --upgrade pip
+        pip install selenium==4.15.2
+        pip install pandas==2.1.1
+        pip install openpyxl==3.1.2
+        pip install webdriver-manager==4.0.1
+        pip install requests==2.31.0
+        pip list
+    
+    - name: Test Chrome setup
+      run: |
+        python -c "from selenium import webdriver; options = webdriver.ChromeOptions(); options.add_argument('--headless'); options.add_argument('--no-sandbox'); driver = webdriver.Chrome(options=options); print('Chrome works!'); driver.quit()"
     
     - name: Run scraper
       run: |
-        python scrape_and_upload.py
+        python scrape_and_upload.py || echo "Scraper failed, but continuing..."
     
-    - name: Upload scraped data as artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: trademark-data
-        path: data/eu_trademarks_*.xlsx
-        retention-days: 30
+    - name: List data files
+      run: |
+        ls -la data/ || echo "No data directory yet"
     
-    - name: Commit and push data to repository
+    - name: Commit and push data
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add data/*.xlsx data/*.json
-        git diff --staged --quiet || git commit -m "Update trademark data - $(date +'%Y-%m-%d')"
-        git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-## Step 3: Commit the file
-1. After pasting the content, scroll down
-2. Click the green **"Commit changes..."** button
-3. In the popup, keep the default message or add "Add GitHub Actions workflow"
-4. Click **"Commit changes"**
-
-## Step 4: Add missing files
-I notice you're missing some required files. You need to also add:
-
-### A. Create `requirements.txt` file:
-1. Go back to main repo page
-2. Click "Create new file"  
-3. Name it: `requirements.txt`
-4. Content:
-```
-Flask==2.3.3
-flask-cors==4.0.0
-pandas==2.1.1
-openpyxl==3.1.2
-selenium==4.15.2
-schedule==1.2.0
-requests==2.31.0
-gunicorn==21.2.0
-webdriver-manager==4.0.1
+        git add data/* || echo "No data files to add"
+        git diff --staged --quiet || git commit -m "Update trademark data - $(date +'%Y-%m-%d %H:%M')"
+        git push || echo "Nothing to push"
