@@ -2,10 +2,11 @@ name: Daily EU Trademark Scraper
 
 on:
   repository_dispatch:
-    types: [scrape_now]  # API trigger
+    types: [scrape_now]  # Add this for API triggers
   schedule:
     - cron: '0 2 * * *'
   workflow_dispatch:
+
 
 # rest stays the same...
 
