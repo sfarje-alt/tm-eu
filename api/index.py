@@ -10,6 +10,9 @@ GITHUB_REPO = "tm-eu"
 GITHUB_BRANCH = "main"
 GITHUB_RAW_URL = f"https://raw.githubusercontent.com/{GITHUB_USER}/{GITHUB_REPO}/{GITHUB_BRANCH}"
 
+# ADD YOUR GITHUB TOKEN HERE (get it from https://github.com/settings/tokens)
+GITHUB_TOKEN = "YOUR_GITHUB_TOKEN_HERE"  # <-- REPLACE THIS!
+
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
         # Parse the URL path
@@ -22,6 +25,8 @@ class handler(BaseHTTPRequestHandler):
             self.send_home()
         elif path == '/api/status':
             self.send_status()
+        elif path == '/api/trigger-scrape':
+            self.trigger_scrape()  # NEW ENDPOINT
         elif path == '/api/trademarks/today/pages':
             self.send_today_pages()
         elif path.startswith('/api/trademarks/today/page/'):
@@ -65,10 +70,11 @@ class handler(BaseHTTPRequestHandler):
         """API documentation"""
         self.send_json_response({
             'name': 'EU Trademark Scraper API',
-            'version': '2.0.0',
+            'version': '2.1.0',
             'description': 'Serves individual Excel files with embedded trademark images',
             'endpoints': {
                 'GET /api/status': 'Check API status and data availability',
+                'GET /api/trigger-scrape': 'Trigger new scraping job (takes ~10 minutes)',
                 'GET /api/trademarks/today/pages': 'List all page files from today\'s scrape',
                 'GET /api/trademarks/today/page/{N}': 'Get download URL for specific page from today',
                 'GET /api/trademarks/{YYYYMMDD}/pages': 'List all page files for specific date',
@@ -77,6 +83,34 @@ class handler(BaseHTTPRequestHandler):
             'github_repo': f"https://github.com/{GITHUB_USER}/{GITHUB_REPO}",
             'note': 'Excel files contain embedded images in Graphic representation column'
         })
+    
+    def trigger_scrape(self):
+        """Trigger GitHub Actions to run the scraper NOW"""
+        if GITHUB_TOKEN == "YOUR_GITHUB_TOKEN_HERE":
+            self.send_error_response(500, "GitHub token not configured")
+            return
+        
+        url = f"https://api.github.com/repos/{GITHUB_USER}/{GITHUB_REPO}/dispatches"
+        
+        data = json.dumps({"event_type": "scrape_now"}).encode()
+        
+        req = urllib.request.Request(url, data=data, headers={
+            'Authorization': f'token {GITHUB_TOKEN}',
+            'Accept': 'application/vnd.github.v3+json',
+            'Content-Type': 'application/json'
+        })
+        
+        try:
+            urllib.request.urlopen(req)
+            self.send_json_response({
+                'success': True,
+                'message': 'Scraping job started successfully!',
+                'estimated_time': '10-15 minutes',
+                'check_status': '/api/status',
+                'check_results': '/api/trademarks/today/pages'
+            })
+        except Exception as e:
+            self.send_error_response(500, f"Failed to trigger scrape: {str(e)}")
     
     def send_status(self):
         """Check API and data status"""
