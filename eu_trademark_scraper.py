@@ -9,6 +9,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 import glob
 import shutil
+import json  # ADD THIS LINE!
+
 
 class EUTrademarkScraper:
     def __init__(self, download_dir=None, headless=True):
