@@ -1,8 +1,8 @@
 name: Daily EU Trademark Scraper
 
 on:
-  repository_dispatch:
-    types: [scrape_now]  # Add this for API triggers
+  repository_dispatch:  # ADD THIS
+    types: [scrape_now]
   schedule:
     - cron: '0 2 * * *'
   workflow_dispatch:
