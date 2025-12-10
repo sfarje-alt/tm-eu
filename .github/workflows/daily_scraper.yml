@@ -1,10 +1,13 @@
 name: Daily EU Trademark Scraper
 
 on:
+  repository_dispatch:
+    types: [scrape_now]  # API trigger
   schedule:
-    # Run daily at 2 AM UTC
     - cron: '0 2 * * *'
-  workflow_dispatch:  # Allow manual trigger
+  workflow_dispatch:
+
+# rest stays the same...
 
 jobs:
   scrape:
