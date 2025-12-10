@@ -232,63 +232,26 @@ class EUTrademarkScraper:
         print('='*60)
         
         dfs = []
-        for i, file in enumerate(excel_files):
+        for file in excel_files:
             try:
-                # Read the Excel file
-                df = pd.read_excel(file, header=1)  # Header is in row 2 (index 1)
-                
-                # Remove the metadata rows at the top
-                # The actual data starts after the header row
-                df = df[df['Filing number'].notna()]  # Remove rows where Filing number is NaN
-                
-                # Remove the search criteria columns (usually last 2-3 columns)
-                # Keep only the standard columns
-                expected_columns = [
-                    'Filing number', 'Graphic representation', 'Name', 'Basis', 'Type',
-                    'Application reference', 'Filing date/ Designation date', 
-                    'Registration date', 'Expiry date', 'Nice classes', 'Status',
-                    'Publications', 'Owner name', 'Owner ID', 'Owner country',
-                    'Representative name', 'Representative ID', 'Filing language',
-                    'Second language', 'Kind of mark', 'Acquired distinctiveness'
-                ]
-                
-                # Keep only columns that match expected names
-                valid_cols = [col for col in df.columns if any(exp in str(col) for exp in expected_columns)]
-                df = df[valid_cols]
-                
+                df = pd.read_excel(file)
                 dfs.append(df)
                 print(f"✅ Loaded {os.path.basename(file)}: {len(df)} rows")
             except Exception as e:
                 print(f"❌ Error reading {file}: {e}")
         
         if dfs:
-            # Concatenate all dataframes
             merged_df = pd.concat(dfs, ignore_index=True)
+            merged_df = merged_df.drop_duplicates()
             
-            # Remove duplicates based on Filing number
-            merged_df = merged_df.drop_duplicates(subset=['Filing number'], keep='first')
-            
-            # Create data directory if it doesn't exist
-            data_dir = os.path.join(self.project_dir, 'data')
-            os.makedirs(data_dir, exist_ok=True)
-            
-            # Save with date in filename to data folder
+            # Save with date in filename
             date_str = self.current_date.strftime('%Y%m%d')
-            output_file = f'eu_trademarks_{date_str}.xlsx'
-            output_path = os.path.join(data_dir, output_file)
+            output_file = f'eu_trademarks_{date_str}_COMPLETE.xlsx'
+            output_path = os.path.join(self.download_dir, output_file)
             
-            # Save with proper formatting
-            with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
-                merged_df.to_excel(writer, index=False, sheet_name='Trademarks')
-            
+            merged_df.to_excel(output_path, index=False)
             print(f"\n🎉 Merged {len(dfs)} files → {output_file}")
-            print(f"📊 Total unique records: {len(merged_df)}")
-            
-            # Also save as JSON in data folder
-            json_path = output_path.replace('.xlsx', '.json')
-            merged_df.to_json(json_path, orient='records', date_format='iso')
-            print(f"📄 JSON saved: {os.path.basename(json_path)}")
-            
+            print(f"📊 Total records: {len(merged_df)}")
             return output_path
         
         return None
@@ -308,15 +271,19 @@ class EUTrademarkScraper:
         driver = webdriver.Chrome(options=self.chrome_options)
         
         try:
+            # We expect ~18 pages for 1735 results
             for page_num in range(1, max_pages + 1):
                 file_path = self.scrape_page(driver, page_num, date_range)
                 
                 if file_path:
                     downloaded_files.append(file_path)
                     print(f"✅ Page {page_num} complete")
+                    
+                    # Small delay between pages
                     if page_num < max_pages:
                         time.sleep(2)
                 else:
+                    # Check if we've reached the end
                     if page_num > 1:
                         print(f"📍 Reached end at page {page_num - 1}")
                         break
@@ -324,41 +291,25 @@ class EUTrademarkScraper:
                         print("❌ First page failed - stopping")
                         break
             
-            # Create a summary/manifest file instead of merging
+            # Merge all files
             if downloaded_files:
                 print(f"\n{'='*60}")
                 print(f"✅ Downloaded {len(downloaded_files)} pages successfully")
                 print('='*60)
                 
-                # Move files to data folder organized by date
-                date_str = self.current_date.strftime('%Y%m%d')
-                data_dir = os.path.join(self.project_dir, 'data', date_str)
-                os.makedirs(data_dir, exist_ok=True)
+                merged_file = self.merge_excel_files(downloaded_files)
                 
-                final_files = []
-                for file in downloaded_files:
-                    filename = os.path.basename(file)
-                    new_path = os.path.join(data_dir, filename)
-                    shutil.move(file, new_path)
-                    final_files.append(new_path)
-                    print(f"📁 Moved to: {new_path}")
+                if merged_file:
+                    # Also save as JSON
+                    df = pd.read_excel(merged_file)
+                    json_path = merged_file.replace('.xlsx', '.json')
+                    df.to_json(json_path, orient='records', date_format='iso')
+                    print(f"📄 JSON saved: {os.path.basename(json_path)}")
                 
-                # Create a manifest file with metadata
-                manifest = {
-                    'date': date_str,
-                    'total_pages': len(final_files),
-                    'files': [os.path.basename(f) for f in final_files],
-                    'scraped_at': datetime.now().isoformat()
-                }
+                # Keep individual page files for reference
+                print(f"\n📁 Individual page files kept in: {self.download_dir}")
                 
-                manifest_path = os.path.join(data_dir, 'manifest.json')
-                with open(manifest_path, 'w') as f:
-                    json.dump(manifest, f, indent=2)
-                
-                print(f"📄 Manifest saved: {manifest_path}")
-                print(f"\n📁 All files saved in: {data_dir}")
-                
-                return data_dir
+                return merged_file
             else:
                 print("❌ No files downloaded")
                 return None
